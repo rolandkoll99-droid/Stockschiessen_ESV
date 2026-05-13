@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ESV Grein | Ohne Timer | Optimiert für iPad</title>
+    <title>ESV Grein | Farbige Kehren (grün/rot) | iPad optimiert</title>
     <style>
         * {
             margin: 0;
@@ -132,6 +132,16 @@
             padding: 8px 12px;
             border-radius: 50px;
             border: 1px solid #e0ecd6;
+            transition: background 0.1s ease;
+        }
+        /* Farbige Hintergründe für Kehren */
+        .kehre-row.current-kehre-bg {
+            background: #c8e6c9 !important;  /* hellgrün für aktuelle Kehre */
+            border-left: 5px solid #2e7d32;
+        }
+        .kehre-row.played-kehre-bg {
+            background: #ffcdd2 !important;  /* hellrot für bereits gespielte Kehren */
+            border-left: 5px solid #c62828;
         }
         .kehre-nr {
             font-weight: 800;
@@ -187,7 +197,7 @@
             overflow-y: auto;
         }
 
-        /* Ergebnis-Karten – etwas größer da Timer weg */
+        /* Ergebnis-Karten */
         .result-mega {
             display: flex;
             gap: 35px;
@@ -250,7 +260,7 @@
             margin-left: 10px;
         }
 
-        /* AKTUELLE KEHRE – etwas kleiner als zuvor */
+        /* AKTUELLE KEHRE – zentrale Anzeige */
         .current-kehre-center {
             text-align: center;
             margin: 5px auto 5px auto;
@@ -384,8 +394,6 @@
     </div>
 
     <div class="center-hero">
-        <!-- KEINE TIMER-ANZEIGE MEHR -->
-
         <div class="result-mega">
             <div class="result-card-big" style="border-bottom: 6px solid #2c7a4d;">
                 <div class="result-team-big"><span>🥌</span> <span id="centerTeamA">Mannschaft W</span></div>
@@ -451,8 +459,9 @@
 
     const sum = arr => arr.reduce((a,b)=>a+b,0);
 
-    function getCurrentKehre() {
-        if (overallWinner) return "🏆";
+    // Ermittelt die aktuell zu spielende Kehre (1-basiert)
+    function getCurrentKehreNumber() {
+        if (overallWinner) return anzahlKehren;
         for (let i = 0; i < anzahlKehren; i++) {
             if (teamAPunkte[i] === 0 && teamBPunkte[i] === 0) {
                 return i + 1;
@@ -461,14 +470,46 @@
         return anzahlKehren;
     }
 
+    // Wendet die Farben auf die Kehren-Zeilen an (links und rechts)
+    function updateKehrenColors() {
+        const currentKehre = getCurrentKehreNumber();
+        
+        // Linke Spalte (Team A)
+        const leftRows = document.querySelectorAll('#leftKehrenPanel .kehre-row');
+        // Rechte Spalte (Team B)
+        const rightRows = document.querySelectorAll('#rightKehrenPanel .kehre-row');
+        
+        for (let i = 0; i < leftRows.length; i++) {
+            const kehreIndex = i + 1;
+            // Entferne vorhandene Farbklassen
+            leftRows[i].classList.remove('current-kehre-bg', 'played-kehre-bg');
+            rightRows[i].classList.remove('current-kehre-bg', 'played-kehre-bg');
+            
+            if (overallWinner) continue;
+            
+            if (kehreIndex === currentKehre) {
+                // Aktuelle Kehre: hellgrün
+                leftRows[i].classList.add('current-kehre-bg');
+                rightRows[i].classList.add('current-kehre-bg');
+            } else if (kehreIndex < currentKehre) {
+                // Bereits gespielte Kehren: hellrot
+                leftRows[i].classList.add('played-kehre-bg');
+                rightRows[i].classList.add('played-kehre-bg');
+            }
+            // Zukünftige Kehren bleiben weiß (keine Klasse)
+        }
+    }
+
     function updateKehreDisplay() {
         if (overallWinner) {
             currentKehreSpan.innerText = "🏆";
+            updateKehrenColors();
             return;
         }
-        const current = getCurrentKehre();
+        const current = getCurrentKehreNumber();
         currentKehreSpan.innerText = current;
         
+        // Prüfe ob alle Kehren gespielt sind
         let allFilled = true;
         for (let i = 0; i < anzahlKehren; i++) {
             if (teamAPunkte[i] === 0 && teamBPunkte[i] === 0) {
@@ -487,6 +528,7 @@
                 msgDiv.innerHTML = '';
             }
         }
+        updateKehrenColors();
     }
 
     function updateCenterUI() {
@@ -718,6 +760,7 @@
             del.addEventListener('click', () => deleteKehre('B', i));
             rightPanel.appendChild(row);
         }
+        updateKehrenColors();
     }
 
     // Event Bindings
